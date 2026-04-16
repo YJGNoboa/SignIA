@@ -39,14 +39,29 @@ const esbuild =
     ? "node_modules\\.bin\\esbuild.cmd"
     : "node_modules/.bin/esbuild";
 
+// Node.js built-ins must be external in both "node:" and bare forms.
+// "--platform=node" handles most cases but react-dom CJS uses bare require("util")
+// which esbuild doesn't always catch, so we list the common ones explicitly.
+const NODE_BUILTINS = [
+  "assert", "buffer", "child_process", "cluster", "console", "constants",
+  "crypto", "dgram", "dns", "domain", "events", "fs", "http", "http2",
+  "https", "inspector", "module", "net", "os", "path", "perf_hooks",
+  "process", "punycode", "querystring", "readline", "repl", "stream",
+  "string_decoder", "sys", "timers", "tls", "tty", "url", "util",
+  "v8", "vm", "worker_threads", "zlib",
+];
+const externals =
+  "--external:node:* " +
+  NODE_BUILTINS.map((m) => `--external:${m}`).join(" ");
+
 execSync(
   `"${esbuild}" dist/server/server.js` +
     " --bundle" +
     " --platform=node" +
     " --target=node20" +
     " --format=esm" +
-    " --outfile=.vercel/output/functions/index.func/server.mjs" +
-    " --external:node:*",
+    ` --outfile=.vercel/output/functions/index.func/server.mjs` +
+    ` ${externals}`,
   { stdio: "inherit" }
 );
 console.log("✓ Server bundled");
